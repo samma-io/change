@@ -16,40 +16,85 @@ async function main() {
 
   const domain = new URL(target).hostname;
 
-  const baseline = await storage.load(domain);
-
-  const browser = await chromium.launch({ headless: true });
-  let snapshot;
   try {
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    const baseline = await storage.load(domain);
 
-    let response;
+    const browser = await chromium.launch({ headless: true });
+    let snapshot;
     try {
-      response = await page.goto(target, {
-        timeout: playwrightTimeout,
-        waitUntil: playwrightWait,
-      });
-    } catch (err) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+
+      let response;
+      try {
+        response = await page.goto(target, {
+          timeout: playwrightTimeout,
+          waitUntil: playwrightWait,
+        });
+      } catch (err) {
+        await logger({
+          url: target,
+          domain,
+          category: 'error',
+          change_type: 'scan_failed',
+          old_value: null,
+          new_value: err.message,
+          type: 'WebChange',
+        });
+        await endThis();
+        return;
+      }
+
+      snapshot = await extractor.extract(page, response);
+    } finally {
+      await browser.close();
+    }
+
+    if (!snapshot) {
       await logger({
         url: target,
         domain,
         category: 'error',
         change_type: 'scan_failed',
         old_value: null,
-        new_value: err.message,
+        new_value: 'extractor returned no snapshot',
         type: 'WebChange',
       });
       await endThis();
       return;
     }
 
-    snapshot = await extractor.extract(page, response);
-  } finally {
-    await browser.close();
-  }
+    if (!baseline) {
+      try {
+        await storage.save(domain, snapshot);
+      } catch (err) {
+        await logger({
+          url: target,
+          domain,
+          category: 'error',
+          change_type: 'baseline_save_failed',
+          old_value: null,
+          new_value: err.message,
+          type: 'WebChange',
+        });
+      }
 
-  if (!baseline) {
+      await logger({
+        url: target,
+        domain,
+        type: 'WebChangeBaseline',
+        categories_captured: Object.keys(snapshot),
+      });
+
+      await endThis();
+      return;
+    }
+
+    const findings = differ.compare(baseline, snapshot);
+    for (const finding of findings) {
+      await logger({ url: target, domain, type: 'WebChange', ...finding });
+    }
+
     try {
       await storage.save(domain, snapshot);
     } catch (err) {
@@ -64,40 +109,15 @@ async function main() {
       });
     }
 
-    await logger({
-      url: target,
-      domain,
-      type: 'WebChangeBaseline',
-      categories_captured: Object.keys(snapshot),
-    });
-
     await endThis();
-    return;
-  }
-
-  const findings = differ.compare(baseline, snapshot);
-  for (const finding of findings) {
-    await logger({ url: target, domain, type: 'WebChange', ...finding });
-  }
-
-  try {
-    await storage.save(domain, snapshot);
   } catch (err) {
-    await logger({
-      url: target,
-      domain,
-      category: 'error',
-      change_type: 'baseline_save_failed',
-      old_value: null,
-      new_value: err.message,
-      type: 'WebChange',
-    });
+    // Last-resort handler: uncaught exception
+    try {
+      await logger({ url: target, domain, category: 'error', change_type: 'scan_failed', old_value: null, new_value: err.message, type: 'WebChange' });
+      await endThis();
+    } catch (_) { /* ignore */ }
+    process.exit(1);
   }
-
-  await endThis();
 }
 
-main().catch((err) => {
-  console.error('Fatal:', err);
-  process.exit(1);
-});
+main();
