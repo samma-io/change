@@ -1,0 +1,14 @@
+{
+  "name": "web-change-scanner",
+  "version": "1.0.0",
+  "description": "Web page change detection scanner",
+  "main": "scan.js",
+  "type": "module",
+  "scripts": {
+    "start": "node scan.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "nats": "^2.18.0"
+  }
+}
