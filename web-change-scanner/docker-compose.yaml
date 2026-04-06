@@ -1,0 +1,19 @@
+services:
+  web-change-scanner:
+    build:
+      context: .
+    image: ghcr.io/samma-io/change-web-change-scanner:latest
+    volumes:
+      - ./out:/out
+    environment:
+      - TARGET=https://example.com
+      - WRITE_TO_FILE=True
+      - PARSER=web-change-scanner
+      - SAMMA_IO_SCANNER=web-change-scanner
+      - SAMMA_IO_ID=1234
+      - SAMMA_IO_TAGS=scanner
+      - NATS_ENABLED=False
+      - NATS_URL=nats://localhost:4222
+      - NATS_SUBJECT=samma-io.scan
+      - PLAYWRIGHT_TIMEOUT=30000
+      - PLAYWRIGHT_WAIT=networkidle

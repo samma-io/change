@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: detect-web-change-scanner
+  namespace: samma-io
+spec:
+  template:
+    spec:
+      containers:
+      - name: web-change-scanner
+        image: ghcr.io/samma-io/change-web-change-scanner:latest
+        env:
+          - name: TARGET
+            value: "https://example.com"
+          - name: WRITE_TO_FILE
+            value: "True"
+          - name: PARSER
+            value: web-change-scanner
+          - name: SAMMA_IO_SCANNER
+            value: web-change-scanner
+          - name: SAMMA_IO_ID
+            value: "1234"
+          - name: SAMMA_IO_TAGS
+            value: scanner
+          - name: NATS_ENABLED
+            value: "False"
+          - name: NATS_URL
+            value: "nats://localhost:4222"
+          - name: NATS_SUBJECT
+            value: "samma-io.scan"
+          - name: PLAYWRIGHT_TIMEOUT
+            value: "30000"
+          - name: PLAYWRIGHT_WAIT
+            value: networkidle
+        volumeMounts:
+          - mountPath: /out
+            name: out-volume
+      volumes:
+      - name: out-volume
+        emptyDir: {}
+      restartPolicy: Never
