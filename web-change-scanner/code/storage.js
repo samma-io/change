@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
-const NATS_ENABLED = process.env.NATS_ENABLED;
+const NATS_ENABLED = process.env.NATS_ENABLED ?? 'False';
 const OUT_DIR = process.env.OUT_DIR || '/out';
 const NATS_URL = process.env.NATS_URL || 'nats://localhost:4222';
 const BUCKET = 'web-change-scanner';

@@ -14,9 +14,10 @@ async function main() {
   const playwrightTimeout = parseInt(process.env.PLAYWRIGHT_TIMEOUT ?? '30000', 10);
   const playwrightWait = process.env.PLAYWRIGHT_WAIT ?? 'networkidle';
 
-  const domain = new URL(target).hostname;
+  let domain;
 
   try {
+    domain = new URL(target).hostname;
     const baseline = await storage.load(domain);
 
     const browser = await chromium.launch({ headless: true });

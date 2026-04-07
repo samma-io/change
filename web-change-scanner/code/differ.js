@@ -102,28 +102,30 @@ function compareStringSet(category, baseArr, currArr, findings) {
 }
 
 // ---------------------------------------------------------------------------
-// Forms: compare by index
+// Forms: compare by composite key (action + method), enctype change = modified
 // ---------------------------------------------------------------------------
-function compareFormObjects(a, b) {
-  return a.action === b.action && a.method === b.method && a.enctype === b.enctype;
+function formKey(form) {
+  return (form.action ?? '') + '|' + (form.method ?? '').toUpperCase();
 }
 
 function compareForms(baseForms, currForms, findings) {
-  const maxLen = Math.max(baseForms.length, currForms.length);
+  const baseByKey = new Map(baseForms.map((f) => [formKey(f), f]));
+  const currByKey = new Map(currForms.map((f) => [formKey(f), f]));
 
-  for (let i = 0; i < maxLen; i++) {
-    const baseForm = baseForms[i] ?? null;
-    const currForm = currForms[i] ?? null;
+  for (const [key, form] of baseByKey) {
+    if (!currByKey.has(key)) {
+      findings.push({ category: 'forms', change_type: 'removed', old_value: form, new_value: null });
+    } else {
+      const currForm = currByKey.get(key);
+      if (form.enctype !== currForm.enctype) {
+        findings.push({ category: 'forms', change_type: 'modified', old_value: form, new_value: currForm });
+      }
+    }
+  }
 
-    if (baseForm === null) {
-      // Extra form in current = added
-      findings.push({ category: 'forms', change_type: 'added', old_value: null, new_value: currForm });
-    } else if (currForm === null) {
-      // Form missing from current = removed
-      findings.push({ category: 'forms', change_type: 'removed', old_value: baseForm, new_value: null });
-    } else if (!compareFormObjects(baseForm, currForm)) {
-      // Same index, different values = modified
-      findings.push({ category: 'forms', change_type: 'modified', old_value: baseForm, new_value: currForm });
+  for (const [key, form] of currByKey) {
+    if (!baseByKey.has(key)) {
+      findings.push({ category: 'forms', change_type: 'added', old_value: null, new_value: form });
     }
   }
 }
@@ -137,15 +139,15 @@ function compareHeaders(baseHeaders, currHeaders, findings) {
 
   for (const key of baseKeys) {
     if (!currKeys.has(key)) {
-      findings.push({ category: 'headers', change_type: 'removed', old_value: baseHeaders[key], new_value: null });
+      findings.push({ category: 'headers', change_type: 'removed', header_name: key, old_value: baseHeaders[key], new_value: null });
     } else if (baseHeaders[key] !== currHeaders[key]) {
-      findings.push({ category: 'headers', change_type: 'modified', old_value: baseHeaders[key], new_value: currHeaders[key] });
+      findings.push({ category: 'headers', change_type: 'modified', header_name: key, old_value: baseHeaders[key], new_value: currHeaders[key] });
     }
   }
 
   for (const key of currKeys) {
     if (!baseKeys.has(key)) {
-      findings.push({ category: 'headers', change_type: 'added', old_value: null, new_value: currHeaders[key] });
+      findings.push({ category: 'headers', change_type: 'added', header_name: key, old_value: null, new_value: currHeaders[key] });
     }
   }
 }

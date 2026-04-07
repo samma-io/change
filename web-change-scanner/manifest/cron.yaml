@@ -5,10 +5,12 @@ metadata:
   namespace: samma-io
 spec:
   schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
+      backoffLimit: 0
       template:
         spec:
           containers:
@@ -41,6 +43,9 @@ spec:
               - mountPath: /out
                 name: out-volume
           volumes:
+          # NOTE: emptyDir loses baseline on every pod restart (filesystem mode only).
+          # For persistent baselines, replace with a PersistentVolumeClaim.
+          # Recommended for production: use NATS_ENABLED=true instead.
           - name: out-volume
             emptyDir: {}
           restartPolicy: Never
