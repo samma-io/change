@@ -132,10 +132,24 @@ function compareForms(baseForms, currForms, findings) {
 
 // ---------------------------------------------------------------------------
 // Headers: plain object key → value
+// Headers that change on every request by design — skip them
+// Can be extended via HEADER_IGNORE env var (comma-separated)
 // ---------------------------------------------------------------------------
+const DEFAULT_HEADER_IGNORE = new Set([
+  'age', 'date', 'expires', 'last-modified',
+  'cf-ray', 'x-request-id', 'x-amz-request-id', 'x-amzn-requestid',
+  'x-cache', 'x-cache-hits', 'via',
+  'set-cookie', // tracked separately via cookies category
+]);
+
+const HEADER_IGNORE = (() => {
+  const extra = (process.env.HEADER_IGNORE || '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+  return new Set([...DEFAULT_HEADER_IGNORE, ...extra]);
+})();
+
 function compareHeaders(baseHeaders, currHeaders, findings) {
-  const baseKeys = new Set(Object.keys(baseHeaders));
-  const currKeys = new Set(Object.keys(currHeaders));
+  const baseKeys = new Set(Object.keys(baseHeaders).filter(k => !HEADER_IGNORE.has(k)));
+  const currKeys = new Set(Object.keys(currHeaders).filter(k => !HEADER_IGNORE.has(k)));
 
   for (const key of baseKeys) {
     if (!currKeys.has(key)) {

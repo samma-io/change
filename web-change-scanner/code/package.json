@@ -8,7 +8,7 @@
     "start": "node scan.js"
   },
   "dependencies": {
-    "playwright": "^1.40.0",
+    "playwright": "1.59.1",
     "nats": "^2.18.0"
   }
 }
