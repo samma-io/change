@@ -20,25 +20,7 @@ if not TARGET:
     sys.exit(1)
 
 parsed = urlparse(TARGET if '://' in TARGET else 'http://' + TARGET)
-hostname = parsed.hostname
-
-CATEGORIES_ENV = os.getenv('CATEGORIES', 'tls,dns,http_headers,ports')
-if CATEGORIES_ENV.strip().lower() == 'all':
-    CATEGORIES = ['tls', 'dns', 'http_headers', 'ports', 'traceroute', 'ssh_banner', 'redirects', 'whois']
-else:
-    CATEGORIES = [c.strip() for c in CATEGORIES_ENV.split(',') if c.strip()]
-
-config = {
-    'tls_port': int(os.getenv('TLS_PORT', '443')),
-    'http_port': int(os.getenv('HTTP_PORT', '443')),
-    'https': os.getenv('HTTPS', 'True').lower() not in ('false', '0', 'no'),
-    'ssh_port': int(os.getenv('SSH_PORT', '22')),
-    'scan_ports': [int(p) for p in os.getenv('SCAN_PORTS', '80,443,22,8080,8443').split(',')],
-    'dns_record_types': [r.strip() for r in os.getenv('DNS_RECORD_TYPES', 'A,AAAA,MX,TXT,NS').split(',')],
-    'max_hops': int(os.getenv('MAX_HOPS', '30')),
-    'max_redirects': int(os.getenv('MAX_REDIRECTS', '10')),
-    'timeout': int(os.getenv('TIMEOUT', '5')),
-}
+hostname = parsed.hostname or TARGET
 
 COLLECTOR_MAP = {
     'tls': collectors.tls.collect,
@@ -52,6 +34,24 @@ COLLECTOR_MAP = {
 }
 
 try:
+    CATEGORIES_ENV = os.getenv('CATEGORIES', 'tls,dns,http_headers,ports')
+    if CATEGORIES_ENV.strip().lower() == 'all':
+        CATEGORIES = ['tls', 'dns', 'http_headers', 'ports', 'traceroute', 'ssh_banner', 'redirects', 'whois']
+    else:
+        CATEGORIES = [c.strip() for c in CATEGORIES_ENV.split(',') if c.strip()]
+
+    config = {
+        'tls_port': int(os.getenv('TLS_PORT', '443')),
+        'http_port': int(os.getenv('HTTP_PORT', '443')),
+        'https': os.getenv('HTTPS', 'True').lower() not in ('false', '0', 'no'),
+        'ssh_port': int(os.getenv('SSH_PORT', '22')),
+        'scan_ports': [int(p) for p in os.getenv('SCAN_PORTS', '80,443,22,8080,8443').split(',')],
+        'dns_record_types': [r.strip() for r in os.getenv('DNS_RECORD_TYPES', 'A,AAAA,MX,TXT,NS').split(',')],
+        'max_hops': int(os.getenv('MAX_HOPS', '30')),
+        'max_redirects': int(os.getenv('MAX_REDIRECTS', '10')),
+        'timeout': int(os.getenv('TIMEOUT', '5')),
+    }
+
     target_key = hostname
 
     baseline = storage.load(target_key)
