@@ -1,5 +1,6 @@
 import sys
 import http.client
+from urllib.parse import urlparse
 
 
 def collect(target: str, config: dict) -> dict:
@@ -19,16 +20,21 @@ def collect(target: str, config: dict) -> dict:
         port = int(config.get('http_port', default_port))
         timeout = int(config.get('timeout', 5))
 
-        if https:
-            conn = http.client.HTTPSConnection(target, port, timeout=timeout)
-        else:
-            conn = http.client.HTTPConnection(target, port, timeout=timeout)
+        parsed = urlparse(target if '://' in target else 'http://' + target)
+        hostname = parsed.hostname
 
-        conn.request('HEAD', '/')
-        resp = conn.getresponse()
-        status_code = resp.status
-        headers = {k.lower(): v for k, v in resp.getheaders()}
-        conn.close()
+        if https:
+            conn = http.client.HTTPSConnection(hostname, port, timeout=timeout)
+        else:
+            conn = http.client.HTTPConnection(hostname, port, timeout=timeout)
+
+        try:
+            conn.request('HEAD', '/')
+            resp = conn.getresponse()
+            status_code = resp.status
+            headers = {k.lower(): v for k, v in resp.getheaders()}
+        finally:
+            conn.close()
 
         headers['_status_code'] = status_code
         return headers

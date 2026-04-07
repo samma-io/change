@@ -1,5 +1,6 @@
 import sys
 import datetime
+import socket as _socket
 
 import whois
 
@@ -41,7 +42,12 @@ def collect(target: str, config: dict) -> dict:
                 return str(v[0]) if v else None
             return str(v)
 
-        w = whois.whois(target)
+        old_timeout = _socket.getdefaulttimeout()
+        _socket.setdefaulttimeout(float(config.get('timeout', 10)))
+        try:
+            w = whois.whois(target)
+        finally:
+            _socket.setdefaulttimeout(old_timeout)
 
         name_servers = w.name_servers
         if isinstance(name_servers, list):

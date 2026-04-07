@@ -12,10 +12,13 @@ def collect(target: str, config: dict) -> dict:
     try:
         record_types = config.get('dns_record_types', ['A', 'AAAA', 'MX', 'TXT', 'NS'])
 
+        resolver = dns.resolver.Resolver()
+        resolver.lifetime = float(config.get('timeout', 5))
+
         result = {}
         for rtype in record_types:
             try:
-                answers = dns.resolver.resolve(target, rtype)
+                answers = resolver.resolve(target, rtype)
                 result[rtype] = [rdata.to_text() for rdata in answers]
             except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
                 result[rtype] = []

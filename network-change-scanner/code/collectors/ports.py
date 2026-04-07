@@ -15,15 +15,16 @@ def collect(target: str, config: dict) -> dict:
         result = {}
         for port in scan_ports:
             port = int(port)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
             try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(timeout)
                 res = sock.connect_ex((target, port))
-                sock.close()
                 result[str(port)] = 'open' if res == 0 else 'closed'
             except Exception as e:
                 print(f"ports collector error for {target}:{port}: {e}", file=sys.stderr)
                 result[str(port)] = 'error'
+            finally:
+                sock.close()
 
         return result
 

@@ -28,16 +28,18 @@ def collect(target: str, config: dict) -> dict:
         hops = []
         hop = 1
         while hop <= max_redirects:
+            response = None
+            done = False
             try:
-                resp = opener.open(current_url, timeout=timeout)
+                response = opener.open(current_url, timeout=timeout)
                 hops.append({
                     'hop': hop,
                     'url': current_url,
-                    'status_code': resp.status,
+                    'status_code': response.status,
                     'redirect_to': None,
                     'final': True,
                 })
-                break
+                done = True
             except urllib.error.HTTPError as e:
                 if e.code in (301, 302, 303, 307, 308):
                     location = e.headers.get('Location', '')
@@ -58,7 +60,7 @@ def collect(target: str, config: dict) -> dict:
                         'redirect_to': None,
                         'final': True,
                     })
-                    break
+                    done = True
             except Exception as e:
                 print(f"redirects collector error for {target} at hop {hop}: {e}", file=sys.stderr)
                 hops.append({
@@ -68,6 +70,11 @@ def collect(target: str, config: dict) -> dict:
                     'redirect_to': None,
                     'final': True,
                 })
+                done = True
+            finally:
+                if response:
+                    response.close()
+            if done:
                 break
 
         return {'hops': hops}
