@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: detect-network-change-scanner
+  namespace: samma-io
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          containers:
+          - name: network-change-scanner
+            image: ghcr.io/samma-io/change-network-change-scanner:latest
+            env:
+              - name: TARGET
+                value: "example.com"
+              - name: WRITE_TO_FILE
+                value: "True"
+              - name: PARSER
+                value: network-change-scanner
+              - name: SAMMA_IO_SCANNER
+                value: network-change-scanner
+              - name: SAMMA_IO_ID
+                value: "1234"
+              - name: SAMMA_IO_TAGS
+                value: scanner
+              - name: NATS_ENABLED
+                value: "False"
+              - name: NATS_URL
+                value: "nats://localhost:4222"
+              - name: NATS_SUBJECT
+                value: "samma-io.scan"
+              - name: CATEGORIES
+                value: "tls,dns,http_headers,ports"
+              - name: TLS_PORT
+                value: "443"
+              - name: HTTP_PORT
+                value: "443"
+              - name: SSH_PORT
+                value: "22"
+              - name: SCAN_PORTS
+                value: "80,443,22,8080,8443"
+              - name: DNS_RECORD_TYPES
+                value: "A,AAAA,MX,TXT,NS"
+              - name: MAX_HOPS
+                value: "30"
+              - name: MAX_REDIRECTS
+                value: "10"
+              - name: TIMEOUT
+                value: "5"
+            volumeMounts:
+              - mountPath: /out
+                name: out-volume
+          volumes:
+          # NOTE: emptyDir loses baseline on every pod restart (filesystem mode only).
+          # For persistent baselines, replace with a PersistentVolumeClaim.
+          # Recommended for production: use NATS_ENABLED=true instead.
+          - name: out-volume
+            emptyDir: {}
+          restartPolicy: Never

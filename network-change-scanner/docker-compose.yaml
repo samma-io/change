@@ -1,0 +1,26 @@
+services:
+  network-change-scanner:
+    build:
+      context: .
+    image: ghcr.io/samma-io/change-network-change-scanner:latest
+    volumes:
+      - ./out:/out
+    environment:
+      - TARGET=example.com
+      - WRITE_TO_FILE=True
+      - PARSER=network-change-scanner
+      - SAMMA_IO_SCANNER=network-change-scanner
+      - SAMMA_IO_ID=1234
+      - SAMMA_IO_TAGS=scanner
+      - NATS_ENABLED=False
+      - NATS_URL=nats://localhost:4222
+      - NATS_SUBJECT=samma-io.scan
+      - CATEGORIES=tls,dns,http_headers,ports
+      - TLS_PORT=443
+      - HTTP_PORT=443
+      - SSH_PORT=22
+      - SCAN_PORTS=80,443,22,8080,8443
+      - DNS_RECORD_TYPES=A,AAAA,MX,TXT,NS
+      - MAX_HOPS=30
+      - MAX_REDIRECTS=10
+      - TIMEOUT=5

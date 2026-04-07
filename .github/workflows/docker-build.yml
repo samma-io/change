@@ -22,6 +22,7 @@ jobs:
       matrix:
         scanner:
           - web-change-scanner
+          - network-change-scanner
 
     steps:
       - name: Checkout
