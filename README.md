@@ -1,16 +1,17 @@
 # change
 
-Stateful web change scanners for the [samma-io](https://github.com/samma-io) security platform. Sibling project to [detect](https://github.com/samma-io/detect).
+Stateful change scanners for the [samma-io](https://github.com/samma-io) security platform. Sibling project to [detect](https://github.com/samma-io/detect).
 
-While `detect` covers network-layer signals (ports, TLS, DNS, HTTP headers), `change` monitors **rendered web page content over time** — catching injected scripts, altered links, form hijacking, and other mutations that indicate compromise or supply-chain attacks.
+While `detect` covers point-in-time network signals, `change` monitors targets **over time** — storing a baseline on first run and emitting one finding per detected change on every subsequent run. This catches supply-chain attacks, infrastructure drift, certificate swaps, DNS hijacks, and page-level compromise.
 
 ---
 
 ## Scanners
 
-| Scanner | What it monitors |
-|---|---|
-| [web-change-scanner](web-change-scanner/) | Full rendered page snapshot — scripts, links, forms, iframes, headers, cookies, resources |
+| Scanner | Layer | What it monitors |
+|---|---|---|
+| [web-change-scanner](web-change-scanner/) | Application | Rendered page content — scripts, links, forms, iframes, headers, cookies, resources |
+| [network-change-scanner](network-change-scanner/) | Network | TLS certs/ciphers, DNS records, HTTP headers, ports, routes, SSH banners, redirects, WHOIS |
 
 ---
 
@@ -24,24 +25,29 @@ Each scanner follows the same pattern as `detect`:
 - **One finding per change** — each detected mutation is a separate JSON event
 - **NATS + NDJSON output** — findings published to NATS and/or written to `/out/*.json`
 
+Baseline storage is automatic: filesystem by default, NATS JetStream KV when `NATS_ENABLED=true`.
+
 ---
 
 ## Quick Start
 
 ```bash
-# Run against a target (first run establishes baseline)
+# Web change scanner — detects page-level mutations
 cd web-change-scanner
 TARGET=https://example.com WRITE_TO_FILE=True docker compose run --rm web-change-scanner
 
-# Run again to detect changes
-TARGET=https://example.com WRITE_TO_FILE=True docker compose run --rm web-change-scanner
+# Network change scanner — detects low-level network mutations
+cd network-change-scanner
+TARGET=example.com WRITE_TO_FILE=True docker compose run --rm network-change-scanner
+
+# Run again to detect changes (first run establishes baseline)
 ```
 
 ---
 
 ## Output Format
 
-Each finding is a JSON object:
+### Web scanner finding
 
 ```json
 {
@@ -52,25 +58,26 @@ Each finding is a JSON object:
   "old_value": null,
   "new_value": "https://cdn.evil.com/tracker.js",
   "type": "WebChange",
-  "samma-io": {
-    "scanner": "web-change-scanner",
-    "id": "1234",
-    "tags": ["scanner"],
-    "json": {}
-  }
+  "samma-io": { "scanner": "web-change-scanner", "id": "1234", "tags": ["scanner"], "json": {} }
 }
 ```
 
-On first run, a baseline finding is emitted:
+### Network scanner finding
 
 ```json
 {
-  "url": "https://example.com",
-  "domain": "example.com",
-  "type": "WebChangeBaseline",
-  "categories_captured": ["scripts", "links", "forms", "iframes", "headers", "cookies", "resources"]
+  "target": "example.com",
+  "category": "tls",
+  "field": "cipher",
+  "change_type": "modified",
+  "old_value": "TLS_CHACHA20_POLY1305_SHA256",
+  "new_value": "TLS_AES_256_GCM_SHA384",
+  "type": "NetworkChange",
+  "samma-io": { "scanner": "network-change-scanner", "id": "1234", "tags": ["scanner"], "json": {} }
 }
 ```
+
+On first run, a baseline finding is emitted (`type: "WebChangeBaseline"` or `"NetworkChangeBaseline"`).
 
 ---
 
@@ -78,7 +85,7 @@ On first run, a baseline finding is emitted:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `TARGET` | required | Full URL to scan |
+| `TARGET` | required | URL or hostname to scan |
 | `WRITE_TO_FILE` | `False` | Write findings to `/out/<PARSER>.json` |
 | `NATS_ENABLED` | `False` | Enable NATS publishing + KV baseline storage |
 | `NATS_URL` | `nats://localhost:4222` | NATS server address |
