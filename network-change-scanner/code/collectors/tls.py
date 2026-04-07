@@ -65,7 +65,7 @@ def collect(target: str, config: dict) -> dict:
 
     except ssl.SSLCertVerificationError as e:
         print(f"tls collector SSLCertVerificationError for {target}: {e}", file=sys.stderr)
-        return {'valid': False, 'error': str(e)}
+        return {'error': str(e)}
     except Exception as e:
         print(f"tls collector error for {target}: {e}", file=sys.stderr)
         return {'error': str(e)}

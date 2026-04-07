@@ -64,7 +64,7 @@ def collect(target: str, config: dict) -> dict:
                 hops.append({
                     'hop': hop,
                     'url': current_url,
-                    'status_code': None,
+                    'status_code': 0,
                     'redirect_to': None,
                     'final': True,
                 })
